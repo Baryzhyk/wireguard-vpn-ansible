@@ -1,0 +1,17 @@
+---
+vpn_wg_address: "10.75.200.1/24"
+
+vpn_wg_peers:
+  - name: "wg-terminal"
+    public_key: "CLIENT_PUBLIC_KEY"
+    allowed_ips: "10.75.200.2/32"
+
+vpn_firewall_allowed_sources:
+  - "192.0.2.30/32"
+  - "192.0.2.31/32"
+
+vpn_node_exporter_allowed_source: "192.0.2.20/32"
+
+vpn_rsyslog_server: "logserver"
+vpn_rsyslog_server_ip: "192.0.2.40"
+vpn_rsyslog_port: 515

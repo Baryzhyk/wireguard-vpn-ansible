@@ -1,0 +1,61 @@
+---
+- name: Create WireGuard configuration directory
+  ansible.builtin.file:
+    path: /etc/wireguard
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Generate WireGuard server private key
+  ansible.builtin.shell:
+    cmd: |
+      umask 077
+      wg genkey > /etc/wireguard/privatekey
+  args:
+    creates: /etc/wireguard/privatekey
+  no_log: true
+
+- name: Generate WireGuard preshared key
+  ansible.builtin.shell:
+    cmd: |
+      umask 077
+      wg genpsk > /etc/wireguard/presharedkey
+  args:
+    creates: /etc/wireguard/presharedkey
+  no_log: true
+
+- name: Read WireGuard server private key
+  ansible.builtin.slurp:
+    src: /etc/wireguard/privatekey
+  register: vpn_wg_private_key_file
+  no_log: true
+  check_mode: false
+
+- name: Read WireGuard preshared key
+  ansible.builtin.slurp:
+    src: /etc/wireguard/presharedkey
+  register: vpn_wg_preshared_key_file
+  no_log: true
+  check_mode: false
+
+- name: Set WireGuard key variables
+  ansible.builtin.set_fact:
+    vpn_wg_private_key: "{{ vpn_wg_private_key_file.content | b64decode | trim }}"
+    vpn_wg_peer_preshared_key: "{{ vpn_wg_preshared_key_file.content | b64decode | trim }}"
+  no_log: true
+
+- name: Deploy WireGuard configuration
+  ansible.builtin.template:
+    src: wg.conf.j2
+    dest: "/etc/wireguard/{{ vpn_wg_interface }}.conf"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart WireGuard
+
+- name: Enable and start WireGuard
+  ansible.builtin.systemd:
+    name: "wg-quick@{{ vpn_wg_interface }}"
+    enabled: true
+    state: started

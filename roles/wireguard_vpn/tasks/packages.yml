@@ -1,0 +1,12 @@
+---
+- name: Install WireGuard firewall crypto and rsyslog packages
+  ansible.builtin.apt:
+    name:
+      - wireguard
+      - iptables
+      - iptables-persistent
+      - python3-cryptography
+      - rsyslog
+      - rsyslog-gnutls
+    state: present
+    update_cache: true

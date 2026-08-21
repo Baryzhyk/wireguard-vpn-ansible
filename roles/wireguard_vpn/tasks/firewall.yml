@@ -1,0 +1,14 @@
+---
+- name: Deploy persistent IPv4 firewall rules
+  ansible.builtin.template:
+    src: rules.v4.j2
+    dest: "{{ vpn_iptables_rules_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  notify:
+    - Reload iptables
+    - Restart WireGuard
+
+- name: Apply firewall changes immediately
+  ansible.builtin.meta: flush_handlers

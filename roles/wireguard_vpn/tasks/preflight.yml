@@ -1,0 +1,26 @@
+---
+- name: Check required VPN variables
+  ansible.builtin.assert:
+    that:
+      - vpn_wg_address is defined
+      - vpn_wg_peers is defined
+      - vpn_wg_peers | length > 0
+      - vpn_firewall_allowed_sources is defined
+      - vpn_node_exporter_allowed_source is defined
+    fail_msg: "One or more required VPN variables are missing"
+
+- name: Check WireGuard peer variables
+  ansible.builtin.assert:
+    that:
+      - item.name is defined
+      - item.public_key is defined
+      - item.allowed_ips is defined
+    fail_msg: "WireGuard peer configuration is incomplete"
+  loop: "{{ vpn_wg_peers }}"
+
+- name: Check detected WAN interface
+  ansible.builtin.assert:
+    that:
+      - vpn_wan_interface in ansible_interfaces
+    fail_msg: "WAN interface {{ vpn_wan_interface }} does not exist on this server"
+    success_msg: "WAN interface {{ vpn_wan_interface }} detected successfully"

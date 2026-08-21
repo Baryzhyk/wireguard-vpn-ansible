@@ -1,0 +1,17 @@
+[Interface]
+Address = {{ vpn_wg_address }}
+ListenPort = {{ vpn_wg_listen_port }}
+PrivateKey = {{ vpn_wg_private_key }}
+
+PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -I INPUT 1 -p udp -m udp --dport {{ vpn_wg_listen_port }} -j ACCEPT
+PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -D INPUT -p udp -m udp --dport {{ vpn_wg_listen_port }} -j ACCEPT
+
+{% for peer in vpn_wg_peers %}
+# Peer: {{ peer.name }}
+[Peer]
+PublicKey = {{ peer.public_key }}
+PresharedKey = {{ vpn_wg_peer_preshared_key }}
+AllowedIPs = {{ peer.allowed_ips }}
+PersistentKeepalive = {{ vpn_wg_persistent_keepalive }}
+
+{% endfor %}

@@ -1,0 +1,125 @@
+---
+- name: Create node exporter group
+  ansible.builtin.group:
+    name: "{{ vpn_node_exporter_group }}"
+    system: true
+    state: present
+
+- name: Create node exporter user
+  ansible.builtin.user:
+    name: "{{ vpn_node_exporter_user }}"
+    group: "{{ vpn_node_exporter_group }}"
+    system: true
+    shell: /usr/sbin/nologin
+    home: /
+    create_home: false
+    state: present
+
+- name: Create node exporter configuration directory
+  ansible.builtin.file:
+    path: "{{ vpn_node_exporter_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0775"
+
+- name: Create node exporter textfile directory
+  ansible.builtin.file:
+    path: "{{ vpn_node_exporter_textfile_dir }}"
+    state: directory
+    owner: "{{ vpn_node_exporter_user }}"
+    group: "{{ vpn_node_exporter_group }}"
+    mode: "0755"
+
+- name: Install node exporter binary
+  ansible.builtin.copy:
+    src: node_exporter
+    dest: "{{ vpn_node_exporter_binary }}"
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Generate node exporter TLS private key
+  community.crypto.openssl_privatekey:
+    path: "{{ vpn_node_exporter_dir }}/node_exporter.key"
+    owner: root
+    group: "{{ vpn_node_exporter_group }}"
+    mode: "0640"
+
+- name: Generate node exporter CSR
+  community.crypto.openssl_csr:
+    path: "{{ vpn_node_exporter_dir }}/node_exporter.csr"
+    privatekey_path: "{{ vpn_node_exporter_dir }}/node_exporter.key"
+    common_name: "{{ ansible_hostname }}"
+    subject_alt_name:
+      - "IP:{{ vpn_node_exporter_listen_address }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Read node exporter CSR
+  ansible.builtin.slurp:
+    src: "{{ vpn_node_exporter_dir }}/node_exporter.csr"
+  register: vpn_node_exporter_csr
+
+- name: Create local PKI directory on Ansible controller
+  ansible.builtin.file:
+    path: "{{ vpn_node_exporter_pki_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  delegate_to: localhost
+
+- name: Save node exporter CSR on Ansible controller
+  ansible.builtin.copy:
+    content: "{{ vpn_node_exporter_csr.content | b64decode }}"
+    dest: "{{ vpn_node_exporter_pki_dir }}/node_exporter.csr"
+    owner: root
+    group: root
+    mode: "0644"
+  delegate_to: localhost
+
+- name: Sign node exporter certificate with CA
+  community.crypto.x509_certificate:
+    path: "{{ vpn_node_exporter_pki_dir }}/node_exporter.crt"
+    csr_path: "{{ vpn_node_exporter_pki_dir }}/node_exporter.csr"
+    provider: ownca
+    ownca_path: "{{ vpn_ca_cert }}"
+    ownca_privatekey_path: "{{ vpn_ca_key }}"
+    ownca_not_after: "+{{ vpn_node_exporter_cert_valid_days }}d"
+  delegate_to: localhost
+
+- name: Install signed node exporter certificate
+  ansible.builtin.copy:
+    src: "{{ vpn_node_exporter_pki_dir }}/node_exporter.crt"
+    dest: "{{ vpn_node_exporter_dir }}/node_exporter.crt"
+    owner: root
+    group: "{{ vpn_node_exporter_group }}"
+    mode: "0640"
+  notify: Restart node exporter
+
+- name: Deploy node exporter TLS config
+  ansible.builtin.template:
+    src: node_exporter-config.yaml.j2
+    dest: "{{ vpn_node_exporter_dir }}/config.yaml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart node exporter
+
+- name: Deploy node exporter systemd service
+  ansible.builtin.template:
+    src: node_exporter.service.j2
+    dest: /etc/systemd/system/node_exporter.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart node exporter
+
+- name: Enable and start node exporter
+  ansible.builtin.systemd:
+    name: node_exporter
+    enabled: true
+    state: started
+    daemon_reload: true

@@ -1,0 +1,21 @@
+---
+- name: Validate configuration
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Install required packages
+  ansible.builtin.import_tasks: packages.yml
+
+- name: Configure kernel networking
+  ansible.builtin.import_tasks: sysctl.yml
+
+- name: Configure firewall
+  ansible.builtin.import_tasks: firewall.yml
+
+- name: Configure WireGuard
+  ansible.builtin.import_tasks: wireguard.yml
+
+- name: Configure node exporter
+  ansible.builtin.import_tasks: node_exporter.yml
+
+- name: Configure rsyslog
+  ansible.builtin.import_tasks: rsyslog.yml

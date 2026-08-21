@@ -1,0 +1,33 @@
+---
+- name: Add logserver to hosts file
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    line: "{{ vpn_rsyslog_server_ip }} {{ vpn_rsyslog_server }}"
+    state: present
+
+- name: Install rsyslog CA certificate
+  ansible.builtin.copy:
+    src: /root/ca/rootCA.crt
+    dest: "{{ vpn_rsyslog_ca_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Configure rsyslog TLS forwarding
+  ansible.builtin.blockinfile:
+    path: /etc/rsyslog.conf
+    marker: "# {mark} ANSIBLE MANAGED BLOCK"
+    insertafter: '^\$WorkDirectory'
+    block: |
+      $DefaultNetstreamDriverCAFile {{ vpn_rsyslog_ca_file }}
+      $DefaultNetstreamDriver gtls
+      $ActionSendStreamDriverMode 1
+      $ActionSendStreamDriverAuthMode anon
+      *.* @@{{ vpn_rsyslog_server }}:{{ vpn_rsyslog_port }}
+  notify: Restart rsyslog
+
+- name: Enable and start rsyslog
+  ansible.builtin.systemd:
+    name: rsyslog
+    enabled: true
+    state: started

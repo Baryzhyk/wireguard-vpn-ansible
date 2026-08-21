@@ -1,0 +1,41 @@
+#
+# Ansible managed
+#
+
+[Unit]
+Description=Prometheus Node Exporter
+After=network-online.target
+
+[Service]
+Type=simple
+User={{ vpn_node_exporter_user }}
+Group={{ vpn_node_exporter_group }}
+
+ExecStart={{ vpn_node_exporter_binary }} \
+    --collector.systemd \
+    --collector.textfile \
+    --collector.textfile.directory={{ vpn_node_exporter_textfile_dir }} \
+    --collector.filesystem \
+    --collector.filesystem.fs-types-exclude='^(sys|proc|auto)fs$' \
+    --collector.filesystem.mount-points-exclude='^/(sys|proc|dev)($|/)' \
+    --no-collector.pressure \
+    --web.config.file={{ vpn_node_exporter_dir }}/config.yaml \
+    --web.listen-address={{ vpn_node_exporter_listen_address }}:{{ vpn_node_exporter_port }} \
+    --web.telemetry-path=/metrics
+
+SyslogIdentifier=node_exporter
+Restart=always
+RestartSec=1
+StartLimitInterval=0
+
+ProtectHome=yes
+NoNewPrivileges=yes
+
+ProtectSystem=strict
+ProtectControlGroups=true
+ProtectKernelModules=true
+ProtectKernelTunables=yes
+
+[Install]
+WantedBy=multi-user.target
+

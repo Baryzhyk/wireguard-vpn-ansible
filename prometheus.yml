@@ -1,0 +1,22 @@
+---
+- name: Configure Prometheus CA trust
+  hosts: prometheus
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Create Prometheus TLS directory
+      ansible.builtin.file:
+        path: /etc/prometheus/tls
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install Root CA certificate
+      ansible.builtin.copy:
+        src: /root/ca/rootCA.crt
+        dest: /etc/prometheus/tls/rootCA.crt
+        owner: root
+        group: root
+        mode: "0644"

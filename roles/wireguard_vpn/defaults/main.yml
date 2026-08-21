@@ -1,0 +1,32 @@
+---
+vpn_wan_interface: "{{ ansible_default_ipv4.interface }}"
+
+vpn_wg_interface: "server-53280"
+vpn_wg_listen_port: 53280
+vpn_wg_persistent_keepalive: 20
+
+vpn_tcp_mss: 1400
+
+vpn_node_exporter_version: "1.10.2"
+vpn_node_exporter_user: "node-exp"
+vpn_node_exporter_group: "node-exp"
+vpn_node_exporter_port: 9100
+vpn_node_exporter_listen_address: "{{ ansible_default_ipv4.address }}"
+vpn_node_exporter_dir: "/etc/node_exporter"
+vpn_node_exporter_textfile_dir: "/var/lib/node_exporter"
+vpn_node_exporter_binary: "/usr/local/bin/node_exporter"
+
+# CA знаходиться тільки на Ansible controller (wg-server)
+vpn_ca_cert: "/root/ca/rootCA.crt"
+vpn_ca_key: "/root/ca/rootCA.key"
+
+# Локальна папка на wg-server для CSR і підписаних сертифікатів
+vpn_node_exporter_pki_dir: "{{ playbook_dir }}/generated/pki/{{ inventory_hostname }}/node_exporter"
+
+vpn_node_exporter_cert_valid_days: 3650
+
+vpn_iptables_rules_file: "/etc/iptables/rules.v4"
+
+vpn_rsyslog_server: "logserver"
+vpn_rsyslog_port: 515
+vpn_rsyslog_ca_file: "/rootCA.crt"

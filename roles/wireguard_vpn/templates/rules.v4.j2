@@ -1,0 +1,30 @@
+*filter
+:INPUT DROP [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+
+-A INPUT -i lo -m comment --comment "ansible[default_rules]" -j ACCEPT
+-A INPUT -p icmp -m icmp --icmp-type any -m comment --comment "ansible[default_rules]" -j ACCEPT
+-A INPUT -m state --state RELATED,ESTABLISHED -m comment --comment "ansible[default_rules]" -j ACCEPT
+
+{% for source in vpn_firewall_allowed_sources %}
+-A INPUT -s {{ source }} -m comment --comment "ansible[default_rules]" -j ACCEPT
+{% endfor %}
+
+-A INPUT -s {{ vpn_node_exporter_allowed_source }} -p tcp -m tcp --dport {{ vpn_node_exporter_port }} -m comment --comment "ansible[default_rules]" -j ACCEPT
+
+-A FORWARD -m state --state RELATED,ESTABLISHED -m comment --comment "ansible[default_rules]" -j ACCEPT
+-A FORWARD -p tcp -m tcp --tcp-flags SYN,RST SYN -m comment --comment "ansible[default_rules]" -j TCPMSS --clamp-mss-to-pmtu
+-A FORWARD -p tcp -m tcp --tcp-flags SYN SYN -m tcpmss --mss {{ vpn_tcp_mss + 1 }}:65535 -m comment --comment "ansible[default_rules]" -j TCPMSS --set-mss {{ vpn_tcp_mss }}
+
+COMMIT
+
+*nat
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+
+-A POSTROUTING -o {{ vpn_wan_interface }} -m comment --comment "ansible[NAT]" -j MASQUERADE
+
+COMMIT

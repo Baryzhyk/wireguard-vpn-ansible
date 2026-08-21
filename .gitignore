@@ -1,0 +1,29 @@
+# Private keys and certificates
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Generated PKI
+generated/
+
+# Real inventory
+inventory/hosts.yml
+inventory/host_vars/*.yml
+
+# Allow example inventory files
+!inventory/hosts.example.yml
+!inventory/host_vars/*.example.yml
+
+# Ansible
+*.retry
+.vault_pass
+vault.yml
+
+# Editors
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
